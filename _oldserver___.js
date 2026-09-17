@@ -1,6 +1,6 @@
 const express = require("express");
+const fs = require("fs");
 const path = require("path");
-const { readList, writeList } = require("./db");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -8,14 +8,20 @@ const PORT = process.env.PORT || 3000;
 const QA_FILE = path.join(__dirname, "data", "qa.json");
 const EXAMPLES_FILE = path.join(__dirname, "data", "examples.json");
 
-// Used only the very first time there's nothing saved yet (fresh Redis
-// database, or a fresh clone with no local writes). After that, whatever
-// the user adds/edits/deletes through the app is what's returned.
-const SEED_QA = require("./data/qa.json");
-const SEED_EXAMPLES = require("./data/examples.json");
+// ---------- small file-based "database" helpers ----------
+function readJSON(file) {
+  try {
+    const raw = fs.readFileSync(file, "utf-8");
+    return raw.trim() ? JSON.parse(raw) : [];
+  } catch (err) {
+    if (err.code === "ENOENT") return [];
+    throw err;
+  }
+}
 
-const QA_KEY = "qa_list";
-const EXAMPLES_KEY = "examples_list";
+function writeJSON(file, data) {
+  fs.writeFileSync(file, JSON.stringify(data, null, 2), "utf-8");
+}
 
 function nextId(list) {
   const max = list.reduce((m, item) => Math.max(m, parseInt(item.id, 10) || 0), 0);
@@ -47,15 +53,15 @@ app.use(express.static(path.join(__dirname, "public")));
 
 // ---------- API routes ----------
 
-// GET all question+answer rows (for the table)
-app.get("/api/questions", async (req, res) => {
-  const list = await readList(QA_KEY, QA_FILE, SEED_QA);
+// GET all question+answer rows (for the table) -> reads only qa.json
+app.get("/api/questions", (req, res) => {
+  const list = readJSON(QA_FILE);
   res.json(list);
 });
 
-// GET one question's example (for the modal)
-app.get("/api/questions/:id/example", async (req, res) => {
-  const list = await readList(EXAMPLES_KEY, EXAMPLES_FILE, SEED_EXAMPLES);
+// GET one question's example (for the modal) -> reads only examples.json
+app.get("/api/questions/:id/example", (req, res) => {
+  const list = readJSON(EXAMPLES_FILE);
   const item = list.find((q) => q.id === req.params.id);
   if (!item) return res.status(404).json({ error: "Not found" });
   res.json(item);
@@ -69,10 +75,10 @@ app.get("/api/categories", (req, res) => {
 });
 
 // GET one question's full details (question + answer + example) -> used to pre-fill the edit form
-app.get("/api/questions/:id", async (req, res) => {
+app.get("/api/questions/:id", (req, res) => {
   const { id } = req.params;
-  const qaList = await readList(QA_KEY, QA_FILE, SEED_QA);
-  const examplesList = await readList(EXAMPLES_KEY, EXAMPLES_FILE, SEED_EXAMPLES);
+  const qaList = readJSON(QA_FILE);
+  const examplesList = readJSON(EXAMPLES_FILE);
 
   const qaEntry = qaList.find((q) => q.id === id);
   if (!qaEntry) return res.status(404).json({ error: "Not found" });
@@ -89,15 +95,15 @@ app.get("/api/questions/:id", async (req, res) => {
 });
 
 // POST a new question -> writes the SAME id into both documents
-app.post("/api/questions", async (req, res) => {
+app.post("/api/questions", (req, res) => {
   const { question, answer, examples, category } = req.body || {};
 
   if (!question || !question.trim() || !answer || !answer.trim()) {
     return res.status(400).json({ error: "question and answer are required" });
   }
 
-  const qaList = await readList(QA_KEY, QA_FILE, SEED_QA);
-  const examplesList = await readList(EXAMPLES_KEY, EXAMPLES_FILE, SEED_EXAMPLES);
+  const qaList = readJSON(QA_FILE);
+  const examplesList = readJSON(EXAMPLES_FILE);
 
   const id = nextId(qaList.length >= examplesList.length ? qaList : examplesList);
   const finalCategory = CATEGORIES.includes(category) ? category : "General";
@@ -118,14 +124,14 @@ app.post("/api/questions", async (req, res) => {
   qaList.push(qaEntry);
   examplesList.push(exampleEntry);
 
-  await writeList(QA_KEY, QA_FILE, qaList);
-  await writeList(EXAMPLES_KEY, EXAMPLES_FILE, examplesList);
+  writeJSON(QA_FILE, qaList);
+  writeJSON(EXAMPLES_FILE, examplesList);
 
   res.status(201).json({ qa: qaEntry, example: exampleEntry });
 });
 
 // PUT (update) an existing question -> updates the SAME id in both documents
-app.put("/api/questions/:id", async (req, res) => {
+app.put("/api/questions/:id", (req, res) => {
   const { id } = req.params;
   const { question, answer, examples, category } = req.body || {};
 
@@ -133,8 +139,8 @@ app.put("/api/questions/:id", async (req, res) => {
     return res.status(400).json({ error: "question and answer are required" });
   }
 
-  const qaList = await readList(QA_KEY, QA_FILE, SEED_QA);
-  const examplesList = await readList(EXAMPLES_KEY, EXAMPLES_FILE, SEED_EXAMPLES);
+  const qaList = readJSON(QA_FILE);
+  const examplesList = readJSON(EXAMPLES_FILE);
 
   const qaIndex = qaList.findIndex((q) => q.id === id);
   if (qaIndex === -1) return res.status(404).json({ error: "Not found" });
@@ -165,25 +171,25 @@ app.put("/api/questions/:id", async (req, res) => {
     examplesList[exIndex] = updatedExample;
   }
 
-  await writeList(QA_KEY, QA_FILE, qaList);
-  await writeList(EXAMPLES_KEY, EXAMPLES_FILE, examplesList);
+  writeJSON(QA_FILE, qaList);
+  writeJSON(EXAMPLES_FILE, examplesList);
 
   res.json({ qa: updatedQa, example: updatedExample });
 });
 
 // DELETE a question -> removes matching id from both documents
-app.delete("/api/questions/:id", async (req, res) => {
+app.delete("/api/questions/:id", (req, res) => {
   const { id } = req.params;
 
-  let qaList = await readList(QA_KEY, QA_FILE, SEED_QA);
-  let examplesList = await readList(EXAMPLES_KEY, EXAMPLES_FILE, SEED_EXAMPLES);
+  let qaList = readJSON(QA_FILE);
+  let examplesList = readJSON(EXAMPLES_FILE);
 
   const existed = qaList.some((q) => q.id === id);
   qaList = qaList.filter((q) => q.id !== id);
   examplesList = examplesList.filter((q) => q.id !== id);
 
-  await writeList(QA_KEY, QA_FILE, qaList);
-  await writeList(EXAMPLES_KEY, EXAMPLES_FILE, examplesList);
+  writeJSON(QA_FILE, qaList);
+  writeJSON(EXAMPLES_FILE, examplesList);
 
   if (!existed) return res.status(404).json({ error: "Not found" });
   res.json({ success: true });
@@ -192,5 +198,3 @@ app.delete("/api/questions/:id", async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Q&A app running at http://localhost:${PORT}`);
 });
-
-module.exports = app;
