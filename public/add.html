@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Add Question - Q&amp;A Board</title>
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="wrap wrap-narrow">
+    <div class="page-header">
+      <div>
+        <h1>Add a new question</h1>
+        <p class="hint">This is added to the Q&amp;A Board - no table shown here, just the form.</p>
+      </div>
+      <a href="/" class="btn-link btn-link-secondary">&larr; Back to Board</a>
+    </div>
+
+    <div id="successMsg" class="success-msg hidden">
+      Question added successfully. <a href="/">View it on the board &rarr;</a>
+    </div>
+
+    <form id="qaForm">
+      <label>
+        Technology
+        <select id="category" name="category" required>
+          <!-- options injected by form.js -->
+        </select>
+      </label>
+
+      <label>
+        Question
+        <input type="text" id="question" name="question" required placeholder="e.g. What is a closure?" />
+      </label>
+
+      <label>
+        Answer (2-4 lines)
+        <textarea id="answer" name="answer" rows="3" required placeholder="Short correct answer..."></textarea>
+      </label>
+
+      <label>
+        Example
+        <textarea id="examples" name="examples" rows="4" placeholder="Code snippet or example shown in the popup..."></textarea>
+      </label>
+
+      <button type="submit">Add Question</button>
+    </form>
+  </div>
+
+  <script src="/form.js"></script>
+</body>
+</html>

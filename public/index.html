@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Q&amp;A Board</title>
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <div class="page-header">
+      <div>
+        
+      </div>
+      <a href="/add" class="btn-link">+ Add Question</a>
+    </div>
+
+    <div id="filterTabs" class="filter-tabs">
+      <!-- tabs injected by table.js -->
+    </div>
+
+    <table id="qaTable">
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th>Question</th>
+          <th>Answer</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="qaBody">
+        <!-- rows injected by table.js -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Modal -->
+  <div id="modalOverlay" class="modal-overlay hidden">
+    <div class="modal">
+      <button id="modalClose" class="modal-close" aria-label="Close">&times;</button>
+      <h3 id="modalQuestion"></h3>
+      <pre id="modalExample"></pre>
+    </div>
+  </div>
+
+  <script src="/table.js"></script>
+</body>
+</html>

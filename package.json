@@ -1,0 +1,12 @@
+{
+  "name": "qa-app",
+  "version": "1.0.0",
+  "description": "Simple Node + Express static Q&A app with two JSON data documents",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Edit Question - Q&amp;A Board</title>
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="wrap wrap-narrow">
+    <div class="page-header">
+      <div>
+        <h1>Edit question</h1>
+        <p class="hint">Update the answer and/or the example, then save.</p>
+      </div>
+      <a href="/" class="btn-link btn-link-secondary">&larr; Back to Board</a>
+    </div>
+
+    <div id="errorMsg" class="error-msg hidden"></div>
+
+    <form id="qaForm" class="hidden">
+      <label>
+        Technology
+        <select id="category" name="category" required>
+          <!-- options injected by edit.js -->
+        </select>
+      </label>
+
+      <label>
+        Question
+        <input type="text" id="question" name="question" required />
+      </label>
+
+      <label>
+        Answer (2-4 lines)
+        <textarea id="answer" name="answer" rows="3" required></textarea>
+      </label>
+
+      <label>
+        Example
+        <textarea id="examples" name="examples" rows="4"></textarea>
+      </label>
+
+      <button type="submit">Save Changes</button>
+    </form>
+  </div>
+
+  <script src="/edit.js"></script>
+</body>
+</html>
