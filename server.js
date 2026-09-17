@@ -8,7 +8,14 @@ require("dotenv").config();
 
 const express = require("express");
 const path = require("path");
-const { readList, writeList, USE_MONGO } = require("./db");
+const {
+  readList,
+  insertItem,
+  replaceItem,
+  deleteItem,
+  nextId,
+  USE_MONGO,
+} = require("./db");
 
 // Clear startup feedback - so a bad MONGODB_URI (wrong password, IP not
 // whitelisted, etc.) shows up immediately in the terminal instead of only
@@ -42,11 +49,6 @@ const SEED_EXAMPLES = require("./data/examples.json");
 
 const QA_KEY = "qa_list";
 const EXAMPLES_KEY = "examples_list";
-
-function nextId(list) {
-  const max = list.reduce((m, item) => Math.max(m, parseInt(item.id, 10) || 0), 0);
-  return String(max + 1);
-}
 
 // Express 4 does NOT catch errors thrown/rejected inside an `async`
 // route handler - an unhandled one (e.g. MongoDB connection failing)
@@ -123,7 +125,10 @@ app.get("/api/questions/:id", asyncHandler(async (req, res) => {
   });
 }));
 
-// POST a new question -> writes the SAME id into both documents
+// POST a new question -> inserts ONE new document with the SAME id into
+// both collections (atomic insertOne each - no read-modify-write-the-
+// whole-list, so two requests arriving together can't clobber each other
+// or produce duplicate ids).
 app.post("/api/questions", asyncHandler(async (req, res) => {
   const { question, answer, examples, category } = req.body || {};
 
@@ -131,11 +136,8 @@ app.post("/api/questions", asyncHandler(async (req, res) => {
     return res.status(400).json({ error: "question and answer are required" });
   }
 
-  const qaList = await readList(QA_KEY, QA_FILE, SEED_QA);
-  const examplesList = await readList(EXAMPLES_KEY, EXAMPLES_FILE, SEED_EXAMPLES);
-
-  const id = nextId(qaList.length >= examplesList.length ? qaList : examplesList);
   const finalCategory = CATEGORIES.includes(category) ? category : "General";
+  const id = await nextId(QA_KEY, QA_FILE, SEED_QA);
 
   const qaEntry = {
     id,
@@ -150,16 +152,14 @@ app.post("/api/questions", asyncHandler(async (req, res) => {
     examples: (examples || "").trim(),
   };
 
-  qaList.push(qaEntry);
-  examplesList.push(exampleEntry);
-
-  await writeList(QA_KEY, QA_FILE, qaList);
-  await writeList(EXAMPLES_KEY, EXAMPLES_FILE, examplesList);
+  await insertItem(QA_KEY, QA_FILE, SEED_QA, qaEntry);
+  await insertItem(EXAMPLES_KEY, EXAMPLES_FILE, SEED_EXAMPLES, exampleEntry);
 
   res.status(201).json({ qa: qaEntry, example: exampleEntry });
 }));
 
-// PUT (update) an existing question -> updates the SAME id in both documents
+// PUT (update) an existing question -> replaces ONE document (matched by
+// id) in both collections (atomic replaceOne each).
 app.put("/api/questions/:id", asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { question, answer, examples, category } = req.body || {};
@@ -169,14 +169,12 @@ app.put("/api/questions/:id", asyncHandler(async (req, res) => {
   }
 
   const qaList = await readList(QA_KEY, QA_FILE, SEED_QA);
-  const examplesList = await readList(EXAMPLES_KEY, EXAMPLES_FILE, SEED_EXAMPLES);
-
-  const qaIndex = qaList.findIndex((q) => q.id === id);
-  if (qaIndex === -1) return res.status(404).json({ error: "Not found" });
+  const existing = qaList.find((q) => q.id === id);
+  if (!existing) return res.status(404).json({ error: "Not found" });
 
   const finalCategory = CATEGORIES.includes(category)
     ? category
-    : qaList[qaIndex].category || "General";
+    : existing.category || "General";
 
   const updatedQa = {
     id,
@@ -191,34 +189,22 @@ app.put("/api/questions/:id", asyncHandler(async (req, res) => {
     examples: (examples || "").trim(),
   };
 
-  qaList[qaIndex] = updatedQa;
-
-  const exIndex = examplesList.findIndex((q) => q.id === id);
-  if (exIndex === -1) {
-    examplesList.push(updatedExample);
-  } else {
-    examplesList[exIndex] = updatedExample;
-  }
-
-  await writeList(QA_KEY, QA_FILE, qaList);
-  await writeList(EXAMPLES_KEY, EXAMPLES_FILE, examplesList);
+  await replaceItem(QA_KEY, QA_FILE, SEED_QA, id, updatedQa);
+  await replaceItem(EXAMPLES_KEY, EXAMPLES_FILE, SEED_EXAMPLES, id, updatedExample);
 
   res.json({ qa: updatedQa, example: updatedExample });
 }));
 
-// DELETE a question -> removes matching id from both documents
+// DELETE a question -> removes ONE document (matched by id) from both
+// collections (atomic deleteOne each).
 app.delete("/api/questions/:id", asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  let qaList = await readList(QA_KEY, QA_FILE, SEED_QA);
-  let examplesList = await readList(EXAMPLES_KEY, EXAMPLES_FILE, SEED_EXAMPLES);
-
+  const qaList = await readList(QA_KEY, QA_FILE, SEED_QA);
   const existed = qaList.some((q) => q.id === id);
-  qaList = qaList.filter((q) => q.id !== id);
-  examplesList = examplesList.filter((q) => q.id !== id);
 
-  await writeList(QA_KEY, QA_FILE, qaList);
-  await writeList(EXAMPLES_KEY, EXAMPLES_FILE, examplesList);
+  await deleteItem(QA_KEY, QA_FILE, SEED_QA, id);
+  await deleteItem(EXAMPLES_KEY, EXAMPLES_FILE, SEED_EXAMPLES, id);
 
   if (!existed) return res.status(404).json({ error: "Not found" });
   res.json({ success: true });
