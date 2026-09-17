@@ -1,1 +1,38 @@
-[]
+[
+  {
+    "id": "1",
+    "category": "JavaScript",
+    "question": "What is a closure in JavaScript?",
+    "examples": "function outer() {\n  let count = 0;\n  return function inner() {\n    count++;\n    return count;\n  };\n}\nconst counter = outer();\ncounter(); // 1\ncounter(); // 2"
+  },
+  {
+    "id": "2",
+    "category": "Node JS",
+    "question": "What is the difference between let and var?",
+    "examples": "console.log(a); // undefined (hoisted)\nvar a = 1;\n\nconsole.log(b); // ReferenceError\nlet b = 2;"
+  },
+  {
+    "id": "3",
+    "category": "Next JS",
+    "question": "getStaticProps vs getServerSideProps - what's the difference?",
+    "examples": "// Build time (static)\nexport async function getStaticProps() {\n  const res = await fetch('https://api.example.com/posts');\n  return { props: { posts: await res.json() } };\n}\n\n// Every request (dynamic)\nexport async function getServerSideProps() {\n  const res = await fetch('https://api.example.com/posts');\n  return { props: { posts: await res.json() } };\n}"
+  },
+  {
+    "id": "4",
+    "category": "AI",
+    "question": "What is a Large Language Model (LLM)?",
+    "examples": "Prompt: \"Translate 'good morning' to French\"\nLLM output: \"Bonjour\"\n\nThe model doesn't 'look up' the answer - it predicts\nthe most likely next tokens based on patterns learned\nfrom billions of training examples."
+  },
+  {
+    "id": "5",
+    "category": "HTML/CSS",
+    "question": "What is the difference between margin and padding?",
+    "examples": ".box {\n  padding: 20px;   /* space INSIDE, before the border */\n  margin: 20px;    /* space OUTSIDE, pushes other elements away */\n  border: 1px solid #ccc;\n}"
+  },
+  {
+    "id": "6",
+    "category": "React JS",
+    "question": "What is JSX in React?",
+    "examples": "function Greeting({ name }) {\n  return <h1>Hello, {name}!</h1>;\n}\n\n// Compiles roughly to:\n// React.createElement('h1', null, 'Hello, ', name, '!')"
+  }
+]

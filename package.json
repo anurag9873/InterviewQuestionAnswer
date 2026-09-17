@@ -1,12 +1,14 @@
 {
   "name": "qa-app",
   "version": "1.0.0",
-  "description": "Simple Node + Express static Q&A app with two JSON data documents",
+  "description": "Simple Node + Express Q&A app with cloud MongoDB storage (falls back to local JSON files for local dev)",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.19.2"
+    "dotenv": "^17.4.2",
+    "express": "^4.19.2",
+    "mongodb": "^7.6.0"
   }
 }
